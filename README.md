@@ -1,6 +1,11 @@
 # Teract Enrichissement
 
-Cette application Streamlit génère des fiches marketing à partir d'un catalogue produits au format Excel ou CSV.
+Cette application permet de générer des fiches marketing à partir d'un catalogue produits Excel ou CSV.
+
+Deux interfaces sont disponibles :
+
+1. l'application **Streamlit** historique (`app.py`)
+2. une **interface React** placée dans `frontend/` qui communique avec l'API FastAPI (`api.py`).
 
 ## Prérequis
 
@@ -23,6 +28,11 @@ secrets de Streamlit Cloud.
 
 ```bash
 pip install -r requirements.txt
+
+# Démarrer l'API FastAPI
+uvicorn api:app --reload
+
+# Optionnel : lancer aussi l'interface Streamlit
 streamlit run app.py
 ```
 
@@ -34,4 +44,7 @@ streamlit run app.py
 
 ## Déploiement
 
-Cette application s'exécute comme un serveur Python. Pour un hébergement en ligne, privilégiez Streamlit Cloud ou toute plateforme capable de lancer `streamlit run app.py`. Netlify n'est pas adapté sans configuration spécifique.
+Le dossier `frontend/` peut être déployé tel quel sur Netlify comme un site statique. L'API FastAPI devra être hébergée séparément (par exemple sur Render, Railway ou tout autre service capable d'exécuter `uvicorn`).
+
+L'application Streamlit reste utilisable pour un déploiement sur Streamlit Cloud si vous le souhaitez.
+
