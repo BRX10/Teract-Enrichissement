@@ -15,7 +15,9 @@ Les variables d'environnement suivantes doivent être définies :
 - `AZURE_OPENAI_DEPLOYMENT` – nom du déploiement GPT-4o-mini ou équivalent
 - `AZURE_OPENAI_API_VERSION` *(facultatif)* – version de l'API (par défaut `2024-05-01-preview`)
 
-Vous pouvez les renseigner dans un fichier `.env` ou via les secrets de Streamlit Cloud.
+Le fichier `.env` à la racine du projet est chargé automatiquement par
+`python-dotenv`. Vous pouvez donc y renseigner vos clés ou utiliser les
+secrets de Streamlit Cloud.
 
 ## Lancer l'application
 
