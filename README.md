@@ -31,3 +31,7 @@ streamlit run app.py
 1. Chargez votre fichier source depuis la barre latérale.
 2. Vérifiez l'aperçu, puis lancez la génération IA.
 3. Téléchargez le fichier enrichi au format Excel.
+
+## Déploiement
+
+Cette application s'exécute comme un serveur Python. Pour un hébergement en ligne, privilégiez Streamlit Cloud ou toute plateforme capable de lancer `streamlit run app.py`. Netlify n'est pas adapté sans configuration spécifique.

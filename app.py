@@ -1,7 +1,6 @@
 import sys, importlib.util
 from datetime import datetime
 from io import BytesIO
-import pandas as pd
 import streamlit as st
 
 # Modules internes
