@@ -1,7 +1,6 @@
 import sys, importlib.util
 from datetime import datetime
 from io import BytesIO
-import pandas as pd
 import streamlit as st
 
 # Modules internes
@@ -19,23 +18,24 @@ apply_style()
 # UI PRINCIPALE
 
 st.markdown("### Générateur de fiches marketing IA – Teract")
-uploaded = st.file_uploader(
-    "Chargez votre fichier aux formats acceptés : xls, xlsm, xlsx, csv",
-    type=["xls", "xlsm", "xlsx", "csv"],
-)
+
+with st.sidebar:
+    st.header("1. Import")
+    uploaded = st.file_uploader(
+        "Chargez votre fichier aux formats acceptés : xls, xlsm, xlsx, csv",
+        type=["xls", "xlsm", "xlsx", "csv"],
+    )
 
 if uploaded:
     try:
-        df = read_file(uploaded)
+        with st.spinner("Lecture du fichier…"):
+            df = read_file(uploaded)
         df.columns = [c.replace("/", " ") for c in df.columns]
 
         # Validation structure
         missing = [c for c in BASE_COLUMNS if c not in df.columns]
         if missing:
-            st.markdown(
-                f"<div class='error-msg'> Colonnes manquantes : {', '.join(missing)}</div>",
-                unsafe_allow_html=True,
-            )
+            st.error(f"Colonnes manquantes : {', '.join(missing)}")
             st.stop()
 
         # Ajout colonnes IA
@@ -43,73 +43,77 @@ if uploaded:
             if col not in df.columns:
                 df[col] = ""
 
-        st.markdown(
-            "<div class='success-msg'> Fichier conforme.</div>",
-            unsafe_allow_html=True,
-        )
-        preview_df(df, "Aperçu du fichier d’entrée", "input_preview")
+        st.success("Fichier conforme.")
 
-    except Exception as err:
-        st.markdown(
-            f"<div class='error-msg'>Erreur de lecture : {err}</div>",
-            unsafe_allow_html=True,
-        )
-        st.stop()
+        tab_prev, tab_gen = st.tabs(["Aperçu", "Génération"])
 
-    if st.button("🚀 Lancer la génération IA"):
-        progress = st.progress(0, text="Appels LLM…")
-        errors = 0
+        with tab_prev:
+            preview_df(df, "Aperçu du fichier d’entrée", "input_preview", editable=True)
 
-        for i, row in df.iterrows():
-            try:
-                r = call_llm(build_user_prompt(row))
-                df.at[i, "Description Marketing Client 1"] = r["desc"]
-                df.at[i, "Plus produit 1"] = r["plus1"]
-                df.at[i, "Plus produit 2"] = r["plus2"]
-                df.at[i, "Plus produit 3"] = r["plus3"]
-                df.at[i, "IA DATA"] = 1
-                df.at[i, "Token"] = r["tokens"]
-                df.at[i, "Date"] = datetime.now().strftime("%d/%m/%Y %H:%M")
-                df.at[i, "IAPLUS"] = 1
-                df.at[i, "Commentaires"] = ""
-            except Exception as e:
-                errors += 1
-                df.at[i, "IA DATA"] = 0
-                df.at[i, "IAPLUS"] = 0
-                df.at[i, "Commentaires"] = str(e)[:250]
-            progress.progress((i + 1) / len(df))
-        progress.empty()
+        with tab_gen:
+            if st.button("🚀 Lancer la génération IA"):
+                progress = st.progress(0, text="Appels LLM…")
+                errors = 0
 
-        st.success(
-            f"Génération terminée : {len(df) - errors} lignes OK, {errors} erreurs."
-        )
-        preview_df(df, "Aperçu du fichier enrichi", "output_preview")
+                for i, row in df.iterrows():
+                    try:
+                        r = call_llm(build_user_prompt(row))
+                        df.at[i, "Description Marketing Client 1"] = r["desc"]
+                        df.at[i, "Plus produit 1"] = r["plus1"]
+                        df.at[i, "Plus produit 2"] = r["plus2"]
+                        df.at[i, "Plus produit 3"] = r["plus3"]
+                        df.at[i, "IA DATA"] = 1
+                        df.at[i, "Token"] = r["tokens"]
+                        df.at[i, "Date"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                        df.at[i, "IAPLUS"] = 1
+                        df.at[i, "Commentaires"] = ""
+                    except Exception as e:
+                        errors += 1
+                        df.at[i, "IA DATA"] = 0
+                        df.at[i, "IAPLUS"] = 0
+                        df.at[i, "Commentaires"] = str(e)[:250]
+                    progress.progress((i + 1) / len(df))
+                progress.empty()
 
-        # Export Excel
-        has_xlwt = importlib.util.find_spec("xlwt") and sys.version_info < (3, 12)
-        eng, ext, mime = (
-            ("xlwt", ".xls", "application/vnd.ms-excel")
-            if has_xlwt
-            else (
-                "openpyxl",
-                ".xlsx",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-        )
-        buf = BytesIO()
-        df.to_excel(buf, index=False, engine=eng)
-        buf.seek(0)
-        fname = f"catalogue_enrichi_{datetime.now():%Y%m%d_%H%M}{ext}"
-        st.download_button(" Télécharger le fichier", buf, file_name=fname, mime=mime)
+                st.success(
+                    f"Génération terminée : {len(df) - errors} lignes OK, {errors} erreurs."
+                )
+                preview_df(df, "Aperçu du fichier enrichi", "output_preview", editable=True)
 
-        # Détail des erreurs
-        with st.expander("Détails des erreurs"):
-            err_df = df[df["IA DATA"] == 0][BASE_COLUMNS + IA_COLUMNS]
-            if err_df.empty:
-                st.write("Aucune.")
+                # Export Excel
+                has_xlwt = importlib.util.find_spec("xlwt") and sys.version_info < (3, 12)
+                eng, ext, mime = (
+                    ("xlwt", ".xls", "application/vnd.ms-excel")
+                    if has_xlwt
+                    else (
+                        "openpyxl",
+                        ".xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                )
+                buf = BytesIO()
+                df.to_excel(buf, index=False, engine=eng)
+                buf.seek(0)
+                fname = f"catalogue_enrichi_{datetime.now():%Y%m%d_%H%M}{ext}"
+                st.download_button(
+                    " Télécharger le fichier",
+                    buf,
+                    file_name=fname,
+                    mime=mime,
+                )
+
+                # Détail des erreurs
+                with st.expander("Détails des erreurs"):
+                    err_df = df[df["IA DATA"] == 0][BASE_COLUMNS + IA_COLUMNS]
+                    if err_df.empty:
+                        st.write("Aucune.")
+                    else:
+                        st.dataframe(err_df, use_container_width=True)
             else:
-                st.dataframe(err_df, use_container_width=True)
-
+                st.info("Appuyez sur le bouton pour démarrer la génération.")
+    except Exception as err:
+        st.error(f"Erreur de lecture : {err}")
+        st.stop()
 else:
     st.info("Déposez un fichier pour commencer.")
 
